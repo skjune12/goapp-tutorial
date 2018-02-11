@@ -15,6 +15,11 @@ type Person struct {
 	Address   *Address `json:"address,omitempty"`
 }
 
+type App struct {
+	Router *mux.Router
+	// DB     *sql.DB
+}
+
 type Address struct {
 	City  string `json:"city,omitempty"`
 	State string `json:"state,omitempty"`
@@ -22,21 +27,34 @@ type Address struct {
 
 var people []Person
 
-func main() {
-	router := mux.NewRouter()
-
-	people = append(people, Person{ID: "1", Firstname: "Nic", Lastname: "Reboy", Address: &Address{City: "Dublin", State: "California"}})
-	people = append(people, Person{ID: "2", Firstname: "Maria", Lastname: "Reboy"})
-
-	router.HandleFunc("/people", GetPeopleEndpoint).Methods("GET")
-	router.HandleFunc("/people/{id}", GetPersonEndpoint).Methods("GET")
-	router.HandleFunc("/people/{id}", CreatePersonEndpoint).Methods("POST")
-	router.HandleFunc("/people/{id}", DeletePersonEndpoint).Methods("DELETE")
-
-	log.Fatal(http.ListenAndServe(":12345", router))
+func (a *App) Initialize() {
+	a.Router = mux.NewRouter()
+	a.initializeRoutes()
 }
 
-func GetPersonEndpoint(w http.ResponseWriter, r *http.Request) {
+func (a *App) initializeRoutes() {
+	a.Router.HandleFunc("/people", a.GetPeopleEndpoint).Methods("GET")
+	a.Router.HandleFunc("/people/{id}", a.GetPersonEndpoint).Methods("GET")
+	a.Router.HandleFunc("/people/{id}", a.CreatePersonEndpoint).Methods("POST")
+	a.Router.HandleFunc("/people/{id}", a.DeletePersonEndpoint).Methods("DELETE")
+}
+
+func (a *App) Run(addr string) {
+	log.Fatal(http.ListenAndServe(addr, a.Router))
+}
+
+func main() {
+	var app App
+
+	// dummy data
+	people = append(people, Person{ID: "1", Firstname: "foo", Lastname: "hoge", Address: &Address{City: "Fujisawa", State: "Kanagawa"}})
+	people = append(people, Person{ID: "2", Firstname: "bar", Lastname: "fuga"})
+
+	app.Initialize()
+	app.Run(":8080")
+}
+
+func (a *App) GetPersonEndpoint(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	for _, item := range people {
 		if item.ID == params["id"] {
@@ -48,11 +66,11 @@ func GetPersonEndpoint(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(&Person{})
 }
 
-func GetPeopleEndpoint(w http.ResponseWriter, r *http.Request) {
+func (a *App) GetPeopleEndpoint(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(people)
 }
 
-func CreatePersonEndpoint(w http.ResponseWriter, r *http.Request) {
+func (a *App) CreatePersonEndpoint(w http.ResponseWriter, r *http.Request) {
 	var person Person
 	params := mux.Vars(r)
 
@@ -63,7 +81,7 @@ func CreatePersonEndpoint(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(people)
 }
 
-func DeletePersonEndpoint(w http.ResponseWriter, r *http.Request) {
+func (a *App) DeletePersonEndpoint(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	for index, item := range people {
 		if item.ID == params["id"] {
