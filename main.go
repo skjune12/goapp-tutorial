@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 )
 
 type Person struct {
-	ID        string   `json:"id,omitempty"`
+	ID        int      `json:"id,omitempty"`
 	Firstname string   `json:"firstname,omitempty"`
 	Lastname  string   `json:"lastname,omitempty"`
 	Address   *Address `json:"address,omitempty"`
@@ -47,8 +48,8 @@ func main() {
 	var app App
 
 	// dummy data
-	people = append(people, Person{ID: "1", Firstname: "foo", Lastname: "hoge", Address: &Address{City: "Fujisawa", State: "Kanagawa"}})
-	people = append(people, Person{ID: "2", Firstname: "bar", Lastname: "fuga"})
+	people = append(people, Person{ID: 1, Firstname: "foo", Lastname: "hoge", Address: &Address{City: "Fujisawa", State: "Kanagawa"}})
+	people = append(people, Person{ID: 2, Firstname: "bar", Lastname: "fuga"})
 
 	app.Initialize()
 	app.Run(":8080")
@@ -57,7 +58,8 @@ func main() {
 func (a *App) GetPersonEndpoint(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	for _, item := range people {
-		if item.ID == params["id"] {
+		id, _ := strconv.Atoi(params["id"])
+		if item.ID == id {
 			json.NewEncoder(w).Encode(item)
 			return
 		}
@@ -75,7 +77,8 @@ func (a *App) CreatePersonEndpoint(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 
 	_ = json.NewDecoder(r.Body).Decode(&person)
-	person.ID = params["id"]
+	id, _ := strconv.Atoi(params["id"])
+	person.ID = id
 	people = append(people, person)
 
 	json.NewEncoder(w).Encode(people)
@@ -84,7 +87,8 @@ func (a *App) CreatePersonEndpoint(w http.ResponseWriter, r *http.Request) {
 func (a *App) DeletePersonEndpoint(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	for index, item := range people {
-		if item.ID == params["id"] {
+		id, _ := strconv.Atoi(params["id"])
+		if item.ID == id {
 			// everything before and everything after.
 			people = append(people[:index], people[index+1:]...)
 			break
