@@ -4,9 +4,12 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 )
 
 type Person struct {
@@ -41,18 +44,23 @@ func (a *App) initializeRoutes() {
 }
 
 func (a *App) Run(addr string) {
-	log.Fatal(http.ListenAndServe(addr, a.Router))
+	loggedRouter := handlers.LoggingHandler(os.Stdout, a.Router)
+	log.Fatal(http.ListenAndServe(addr, loggedRouter))
 }
 
 func main() {
 	var app App
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file:", err)
+	}
 
 	// dummy data
 	people = append(people, Person{ID: 1, Firstname: "foo", Lastname: "hoge", Address: &Address{City: "Fujisawa", State: "Kanagawa"}})
 	people = append(people, Person{ID: 2, Firstname: "bar", Lastname: "fuga"})
 
 	app.Initialize()
-	app.Run(":8080")
+	app.Run(os.Getenv("ADDR"))
 }
 
 func (a *App) GetPersonEndpoint(w http.ResponseWriter, r *http.Request) {
