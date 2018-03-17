@@ -47,6 +47,7 @@ func (a *App) InitializeDB() {
 	if err != nil {
 		log.Fatal("sql.Open:", err)
 	}
+	defer a.DB.Close()
 
 	_, err = a.DB.Exec(`CREATE TABLE IF NOT EXISTS "people" (
 			"id" INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -143,7 +144,14 @@ func (a *App) DeletePersonEndpoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) TestDB(w http.ResponseWriter, r *http.Request) {
+	var err error
 	results := []Person{}
+
+	a.DB, err = sql.Open("sqlite3", os.Getenv("DBFILE"))
+	if err != nil {
+		log.Fatal("sql.Open:", err)
+	}
+	defer a.DB.Close()
 
 	rows, err := a.DB.Query(`SELECT * from people`)
 	if err != nil {
