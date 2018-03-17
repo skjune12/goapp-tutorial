@@ -27,7 +27,34 @@ func (a *App) GetPersonEndpoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) GetPeopleEndpoint(w http.ResponseWriter, r *http.Request) {
-	json.NewEncoder(w).Encode(people)
+	var err error
+	results := []Person{}
+
+	a.DB, err = sql.Open("sqlite3", os.Getenv("DBFILE"))
+	if err != nil {
+		log.Fatal("sql.Open:", err)
+	}
+	defer a.DB.Close()
+
+	rows, err := a.DB.Query(`SELECT * from people`)
+	if err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var p Person
+		var a Address
+		err = rows.Scan(&p.ID, &p.Firstname, &p.Lastname, &a.City, &a.State)
+		if err != nil {
+			log.Fatal(err)
+		}
+		p.Address = &a
+
+		results = append(results, p)
+	}
+
+	json.NewEncoder(w).Encode(results)
 }
 
 func (a *App) CreatePersonEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -71,35 +98,4 @@ func (a *App) DeletePersonEndpoint(w http.ResponseWriter, r *http.Request) {
 	}
 	// returns empty object
 	json.NewEncoder(w).Encode(&Person{})
-}
-
-func (a *App) TestDB(w http.ResponseWriter, r *http.Request) {
-	var err error
-	results := []Person{}
-
-	a.DB, err = sql.Open("sqlite3", os.Getenv("DBFILE"))
-	if err != nil {
-		log.Fatal("sql.Open:", err)
-	}
-	defer a.DB.Close()
-
-	rows, err := a.DB.Query(`SELECT * from people`)
-	if err != nil {
-		panic(err)
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var p Person
-		var a Address
-		err = rows.Scan(&p.ID, &p.Firstname, &p.Lastname, &a.City, &a.State)
-		if err != nil {
-			log.Fatal(err)
-		}
-		p.Address = &a
-
-		results = append(results, p)
-	}
-
-	json.NewEncoder(w).Encode(results)
 }

@@ -62,7 +62,6 @@ func (a *App) initializeRoutes() {
 	a.Router.HandleFunc("/people/{id}", a.GetPersonEndpoint).Methods("GET")
 	a.Router.HandleFunc("/person", a.CreatePersonEndpoint).Methods("POST")
 	a.Router.HandleFunc("/person/{id}", a.DeletePersonEndpoint).Methods("DELETE")
-	a.Router.HandleFunc("/testdb", a.TestDB).Methods("GET")
 }
 
 func (a *App) Run(addr string) {
