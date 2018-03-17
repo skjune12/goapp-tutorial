@@ -14,8 +14,9 @@ import (
 
 func (a *App) GetPersonEndpoint(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
+	id, _ := strconv.Atoi(params["id"])
+
 	for _, item := range people {
-		id, _ := strconv.Atoi(params["id"])
 		if item.ID == id {
 			json.NewEncoder(w).Encode(item)
 			return
@@ -31,27 +32,45 @@ func (a *App) GetPeopleEndpoint(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) CreatePersonEndpoint(w http.ResponseWriter, r *http.Request) {
 	var person Person
-	params := mux.Vars(r)
+	var err error
+
+	a.DB, err = sql.Open("sqlite3", os.Getenv("DBFILE"))
+	if err != nil {
+		log.Fatal("sql.Open:", err)
+	}
+	defer a.DB.Close()
 
 	_ = json.NewDecoder(r.Body).Decode(&person)
-	id, _ := strconv.Atoi(params["id"])
-	person.ID = id
-	people = append(people, person)
 
-	json.NewEncoder(w).Encode(people)
+	_, err = a.DB.Exec(
+		`INSERT INTO "people" ("firstname", "lastname", "city", "state") VALUES(?, ?, ?, ?)`,
+		person.Firstname,
+		person.Lastname,
+		person.Address.City,
+		person.Address.State,
+	)
+
+	if err != nil {
+		log.Fatal("INSERT INTO: ", err)
+	}
+
+	json.NewEncoder(w).Encode(person)
 }
 
 func (a *App) DeletePersonEndpoint(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
+	id, _ := strconv.Atoi(params["id"])
+
 	for index, item := range people {
-		id, _ := strconv.Atoi(params["id"])
 		if item.ID == id {
 			// everything before and everything after.
 			people = append(people[:index], people[index+1:]...)
+			json.NewEncoder(w).Encode(people)
 			break
 		}
 	}
-	json.NewEncoder(w).Encode(people)
+	// returns empty object
+	json.NewEncoder(w).Encode(&Person{})
 }
 
 func (a *App) TestDB(w http.ResponseWriter, r *http.Request) {
